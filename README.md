@@ -1,6 +1,6 @@
-# DSCP Control API
+# Audio Stream Worklet API
 
-This is the repository for DSCP Control API. You're welcome to
+This is the repository for the Media Stream Audio Worklet. You're welcome to
 [contribute](CONTRIBUTING.md)!
 
-Read the [formatted version](https://w3c.github.io/webrtc-dscp-exp/) here!
+Read the [formatted version](https://alvestrand.github.io/audio-worklet/) here!
