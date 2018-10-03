@@ -1,11 +1,11 @@
 <pre class='metadata'>
-Title: WebRTC DSCP Control API
+Title: WebRTC Audio Worklet
 Shortname: mediacapture-audio-worklet
 Level: 1
 Status: ED
 Group: webrtc
 Repository: alvestrand/audio-worklet
-URL: http://alvestrand.github.io/audio-worklet/
+URL: https://alvestrand.github.io/audio-worklet/
 Editor: Harald Alvestrand, Google https://google.com, hta@google.com
 Abstract: This API defines a worklet for handling the samples in an
 Abstract: audio stream using worklets.
@@ -23,18 +23,73 @@ spec: WEBRTC; urlPrefix: https://w3c.github.io/webrtc-pc/
         for: RTCRtpEncodingParameters; text: priority; url: #dom-rtcrtpencodingparameters-priority
 </pre>
 
-Introduction {#intro}
-======
+
 This will be introduced.
 
 
-IDL specification {#idl}
+API specification: WebRTC Audio Worklet
+
+Introduction {#intro}
+======
+
+This document constitutes an extension to “Media Capture and Streams”. It specifies an API that allows convenient access to raw audio data for processing purposes.
+
+The aim of the specification, unlike [[WebAudio]], is to provide a special purpose API for the efficient processing of audio data, with minimal overhead imposed over what can be achieved by embedding the processing inside the browser.
+
+The target for this API is functions that need to be implemented efficiently, with minimum additional overhead and minimal required conversions. Thus, the format for audio here is deliberately not constrained to a single format; the platform is free to choose over a wide range of capabilities, and the applications are expected to adapt to this.
+
+Processing model
 ====
 
+This API adopts the “worklet” model: The application loads a Javascript module, which is loaded into a context separate from the main Javascript application. In this context, a specific function is called for each buffer of audio data.
+The buffer contains enough information to ascertain the format of the audio data, and the audio data itself. There exists an API for writing audio data (in the same format as the incoming data), but the processing model allows applications that do not use this API.
+
+Interface definition
+====
 <pre class='idl'>
+// These parameters characterize a particular call to process().
+interface Parameters {
+  readonly attribute unsigned long long currentSample;
+  readonly attribute double currentTime;
+  readonly attribute unsigned long sampleCount;
+};
+
+// these options are given by the platform and cannot be changed by the user
+interface MediaTrackPlatformOptions {
+    readonly attribute unsigned long bitsPerSample;
+    readonly attribute unsigned long channelCount;
+    readonly attribute float sampleRate;
+};
+
+// These are specified by the instantiator at node creation time
+interface mediaTrackNodeOptions {
+    attribute bool producesOutput;
+};
+
+[Exposed=AudioWorklet,
+Constructor (MediaTrackPlatformOptions platformOptions, optional MediaTrackNodeOptions userOptions)]
+interface MediaStreamTrackProcessor {
+  readonly attribute MessagePort port;
+  readonly attribute MediaTrackPlatformOptions platformOptions;
+  readonly attribute MediaTrackNodeOptions userOptions;
+  boolean process(Buffer inputs, Buffer outputs, Parameters parameters);
+};
 
 </pre>
+Unlike the WebAudio API, there is no global clock; the currentFrame and currentTime are references to be interpreted in the context of this particular MediaStreamTrack.
 
-some definition {#some}
-----
+The Buffer arguments are byte buffers, and must be interpreted by looking at channelCount and bitsPerSample. They are allocated by the calling process, and are expected to be deallocated or reused after the process() function returns; the processing module cannot hold on to a reference to them.
+
+Function to create a MediaTrackProcessor:
+====
+<pre class='idl'>
+// promise&lt;MediaStreamTrack> createMediatrackProcessor(URI script, MediaStreamTrack inputTrack, MediaTrackNodeOptions options);
+</pre>
+
+If the MediaTrackNodeOptions include a “true” for producesOutput, there will be an output buffer passed to process().
+
+
+Emulating MediaTrackProcessor on top of WebAudio AudioWorkletNode
+====
+This should be possible, and would allow to experiment with the API in parallel with implementation.
 
