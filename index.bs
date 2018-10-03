@@ -1,0 +1,40 @@
+<pre class='metadata'>
+Title: WebRTC DSCP Control API
+Shortname: mediacapture-audio-worklet
+Level: 1
+Status: ED
+Group: webrtc
+Repository: alvestrand/audio-worklet
+URL: http://alvestrand.github.io/audio-worklet/
+Editor: Harald Alvestrand, Google https://google.com, hta@google.com
+Abstract: This API defines a worklet for handling the samples in an
+Abstract: audio stream using worklets.
+Markup Shorthands: css no
+</pre>
+</pre>
+
+<pre class='anchors'>
+spec: WEBRTC; urlPrefix: https://w3c.github.io/webrtc-pc/
+    type: interface
+        for: RTCRtpEncodingParameters; text: RTCRtpEncodingParameters; url: #dom-rtcrtpencodingparameters
+    type: enum
+        text: RTCPriorityType; url: #dom-rtcprioritytype
+    type: attribute
+        for: RTCRtpEncodingParameters; text: priority; url: #dom-rtcrtpencodingparameters-priority
+</pre>
+
+Introduction {#intro}
+======
+This will be introduced.
+
+
+IDL specification {#idl}
+====
+
+<pre class='idl'>
+
+</pre>
+
+some definition {#some}
+----
+
