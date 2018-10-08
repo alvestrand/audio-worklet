@@ -2,8 +2,7 @@
 Title: WebRTC Audio Worklet
 Shortname: mediacapture-audio-worklet
 Level: 1
-Status: ED
-Group: webrtc
+Status: UD
 Repository: alvestrand/audio-worklet
 URL: https://alvestrand.github.io/audio-worklet/
 Editor: Harald Alvestrand, Google https://google.com, hta@google.com
