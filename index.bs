@@ -3,6 +3,7 @@ Title: WebRTC Audio Worklet
 Shortname: mediacapture-audio-worklet
 Level: 1
 Status: UD
+Group: webrtc
 Repository: alvestrand/audio-worklet
 URL: https://alvestrand.github.io/audio-worklet/
 Editor: Harald Alvestrand, Google https://google.com, hta@google.com
@@ -28,8 +29,7 @@ This will be introduced.
 
 API specification: WebRTC Audio Worklet
 
-Introduction {#intro}
-======
+# Introduction # {#intro}
 
 This document constitutes an extension to “Media Capture and Streams”. It specifies an API that allows convenient access to raw audio data for processing purposes.
 
@@ -37,15 +37,26 @@ The aim of the specification, unlike [[WebAudio]], is to provide a special purpo
 
 The target for this API is functions that need to be implemented efficiently, with minimum additional overhead and minimal required conversions. Thus, the format for audio here is deliberately not constrained to a single format; the platform is free to choose over a wide range of capabilities, and the applications are expected to adapt to this.
 
-Processing model
-====
+# Processing model # {#model}
 
 This API adopts the “worklet” model: The application loads a Javascript module, which is loaded into a context separate from the main Javascript application. In this context, a specific function is called for each buffer of audio data.
 The buffer contains enough information to ascertain the format of the audio data, and the audio data itself. There exists an API for writing audio data (in the same format as the incoming data), but the processing model allows applications that do not use this API.
 
-Interface definition
-====
+# Interface definition # {#interface}
+
 <pre class='idl'>
+[Exposed=Window, SecureContext]
+interface AudioMediaTrackWorklet: Worklet {
+};
+
+// This object is created by the application in order to instantiate
+// a worklet containing the AudioMediaTrackProcessor.
+[Exposed=Window, SecureContext,
+Constructor(MediaStreamTrack inputTrack, MediaTrackNodeOptions options)]
+interface AudioMediaTrackNode {
+  readonly attribute MediaStreamTrack? outputTrack;
+};
+
 // These parameters characterize a particular call to process().
 interface Parameters {
   readonly attribute unsigned long long currentSample;
@@ -53,42 +64,56 @@ interface Parameters {
   readonly attribute unsigned long sampleCount;
 };
 
+// Format of samples. TODO: Figure out if there's a common practice
+// that we should refer to rather than defining our own enum.
+enum SampleFormat {
+  "float32",
+  "int32",
+};
+
 // these options are given by the platform and cannot be changed by the user
 interface MediaTrackPlatformOptions {
-    readonly attribute unsigned long bitsPerSample;
+    readonly attribute SampleFormat sampleFormat;
     readonly attribute unsigned long channelCount;
     readonly attribute float sampleRate;
 };
 
 // These are specified by the instantiator at node creation time
-interface mediaTrackNodeOptions {
+interface MediaTrackNodeOptions {
     attribute bool producesOutput;
 };
 
-[Exposed=AudioWorklet,
-Constructor (MediaTrackPlatformOptions platformOptions, optional MediaTrackNodeOptions userOptions)]
-interface MediaStreamTrackProcessor {
+
+// The processor object is created by the platform when creating
+// an AudioMediaTrackNode
+[Exposed=AudioMediaTrackWorklet,
+Constructor (MediaTrackPlatformOptions platformOptions,
+             optional MediaTrackNodeOptions userOptions)]
+interface AudioMediaTrackProcessor {
   readonly attribute MessagePort port;
   readonly attribute MediaTrackPlatformOptions platformOptions;
   readonly attribute MediaTrackNodeOptions userOptions;
-  boolean process(Buffer inputs, Buffer outputs, Parameters parameters);
+  boolean process(Buffer input, Buffer? output, Parameters parameters);
 };
 
 </pre>
 Unlike the WebAudio API, there is no global clock; the currentFrame and currentTime are references to be interpreted in the context of this particular MediaStreamTrack.
 
-The Buffer arguments are byte buffers, and must be interpreted by looking at channelCount and bitsPerSample. They are allocated by the calling process, and are expected to be deallocated or reused after the process() function returns; the processing module cannot hold on to a reference to them.
+The Buffer arguments are byte buffers, and must be interpreted by looking at channelCount and sampleFormat. They are allocated by the calling process, and are expected to be deallocated or reused after the process() function returns; the processing module cannot hold on to a reference to them.
 
-Function to create a MediaTrackProcessor:
-====
-<pre class='idl'>
-// promise&lt;MediaStreamTrack> createMediatrackProcessor(URI script, MediaStreamTrack inputTrack, MediaTrackNodeOptions options);
-</pre>
+If the MediaTrackNodeOptions includes a “true” for producesOutput, there will be an output buffer passed to process().
 
-If the MediaTrackNodeOptions include a “true” for producesOutput, there will be an output buffer passed to process().
+# Design choices # {#remaining-choices}
+Sometimes, processing will want to be done on multiple tracks. We could pass
+multiple tracks into the AudioMediaTrackNode constructur, and have multiple
+Buffers passed to process() - but this would require that the platform
+synchronize the tracks, which works against the goal of minimizing platform
+processing overhead.
 
+An alternative design for these cases is to have two (or more) worklets
+writing into a common SharedArrayBuffer, which the trailing processor would
+then read from in order to produce output.
 
-Emulating MediaTrackProcessor on top of WebAudio AudioWorkletNode
-====
+# Emulating MediaTrackProcessor on top of WebAudio AudioWorkletNode # {#prototype}
 This should be possible, and would allow to experiment with the API in parallel with implementation.
 
